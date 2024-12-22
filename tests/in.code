@@ -1,8 +1,6 @@
 int main(){
     if (true) {
-        x + y = "test here";
-        32 > 15;
-        not != true;
+        char[15];
     }
     return 0;
 };

@@ -37,6 +37,7 @@ void stack_pop(Stack* s){
     --s->size;
 }
 
+// TODO: verify program ast is within context free language of the program
 void build_ast(Program* prog, AST* ast) {
     if (!prog || prog->token_count == 0) {
         fprintf(stderr, "Program has no tokens.\n");

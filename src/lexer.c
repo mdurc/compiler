@@ -63,6 +63,8 @@ void lex_file(FILE* fp, Token** tokens, int* token_count, int* token_capacity){
             case ')': add_token(tokens, token_count, token_capacity, create_token(CLOSE_PAREN, ")", line)); break;
             case '{': add_token(tokens, token_count, token_capacity, create_token(OPEN_BRACE, "{", line)); break;
             case '}': add_token(tokens, token_count, token_capacity, create_token(CLOSE_BRACE, "}", line)); break;
+            case '[': add_token(tokens, token_count, token_capacity, create_token(OPEN_BRACKET, "[", line)); break;
+            case ']': add_token(tokens, token_count, token_capacity, create_token(CLOSE_BRACKET, "]", line)); break;
             case ',': add_token(tokens, token_count, token_capacity, create_token(COMMA, ",", line)); break;
             case '.': add_token(tokens, token_count, token_capacity, create_token(DOT, ".", line)); break;
             case '-': add_token(tokens, token_count, token_capacity, create_token(MINUS, "-", line)); break;
