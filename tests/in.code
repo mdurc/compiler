@@ -1,6 +1,6 @@
-int main(){
+main(){
     if (true) {
-        char[15];
+        print_string("test\n")
     }
-    return 0;
-};
+    return 0
+}

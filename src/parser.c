@@ -51,7 +51,11 @@ void build_ast(Program* prog, AST* ast) {
     ast->root->children_count = 0;
 
     Stack parent_stack = {NULL, 0, 0};
-    TokenType parent_tokens[][2] = {{OPEN_BRACE, CLOSE_BRACE}, {OPEN_PAREN, CLOSE_PAREN},
+    TokenType parent_keywords[][2] = {{IF, CLOSE_BRACE}, {ELSE, CLOSE_BRACE},
+                                    {WHILE, CLOSE_BRACE}, {FOR, CLOSE_BRACE},
+                                    {MAIN, CLOSE_BRACE}, {RETURN, INT},
+                                    {PRINT_STRING, CLOSE_PAREN}, {PRINT_INT, CLOSE_PAREN}};
+    TokenType parent_enclosers[][2] = {{OPEN_BRACE, CLOSE_BRACE}, {OPEN_PAREN, CLOSE_PAREN},
                                     {OPEN_BRACKET, CLOSE_BRACKET}};
 
     for (int i=0; i<prog->token_count; ++i) {
@@ -61,10 +65,17 @@ void build_ast(Program* prog, AST* ast) {
 
         // TokenNode is 4 bytes, each parent_token is one tokens
         int new_layer = 0;
-        for (int j = 0; j < (int)(sizeof(parent_tokens)/(sizeof(TokenType)*2)); ++j){
-            if (curr_token->type == parent_tokens[j][0]) {
+        for (int j = 0; j < (int)(sizeof(parent_enclosers)/(sizeof(TokenType)*2)); ++j){
+            if (curr_token->type == parent_enclosers[j][0]) {
                 new_layer = 1; break;
-            }else if (curr_token->type == parent_tokens[j][1]) {
+            }else if (curr_token->type == parent_enclosers[j][1]) {
+                new_layer = -1; break;
+            }
+        }
+        for (int j=0; j < (int)(sizeof(parent_keywords)/sizeof(TokenType)); ++j){
+            if (curr_token->type == parent_keywords[j][0]){
+                new_layer = 1; break;
+            }else if (curr_token->type == parent_keywords[j][1]){
                 new_layer = -1; break;
             }
         }
@@ -76,6 +87,18 @@ void build_ast(Program* prog, AST* ast) {
         } else if (new_layer == -1) {
             // close ast layer
             stack_pop(&parent_stack);
+
+            // Go back to original scope of conditonal
+            if (parent_stack.size > 0){
+                for (int j=0; j < (int)(sizeof(parent_keywords)/sizeof(TokenType)); ++j){
+                    if (parent_stack.buf[parent_stack.size-1]->token_data->type == parent_keywords[j][0] &&
+                            curr_token->type == parent_keywords[j][1]){
+                        stack_pop(&parent_stack);
+                        break;
+                    }
+                }
+            }
+
             add_child(parent_node, curr_token);
         } else {
             // either adding to ast->root or adding within some ast layer
@@ -100,7 +123,7 @@ void print_ast(struct TokenNode* root, int depth, int is_root){
     const char *token_type_to_string[] = {
         "OPEN_PAREN", "CLOSE_PAREN", "OPEN_BRACE", "CLOSE_BRACE",
         "OPEN_BRACKET", "CLOSE_BRACKET",
-        "COMMA", "DOT", "MINUS", "PLUS", "SEMICOLON", "SLASH", "STAR",
+        "COMMA", "DOT", "MINUS", "PLUS", "SLASH", "STAR",
 
         "BANG", "BANG_EQUAL", "EQUAL", "EQUAL_EQUAL",
         "GREATER", "GREATER_EQUAL", "LESS", "LESS_EQUAL",
