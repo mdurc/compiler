@@ -5,7 +5,6 @@
 void free_program(Program* prog){
     int i;
     for (i=0; i<prog->token_count; ++i) {
-        printf("Token: %s\n", prog->tokens[i].data);
         free(prog->tokens[i].data);
     }
     free(prog->tokens);
@@ -24,7 +23,7 @@ int main(int argc, char** argv){
     AST ast;
     build_ast(&prog, &ast);
 
-    print_ast(ast.root, 0);
+    print_ast(ast.root, 0, 1);
 
     free_program(&prog);
     fclose(fp);

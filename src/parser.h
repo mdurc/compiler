@@ -18,7 +18,6 @@ struct TokenNode {
 // abstract syntax tree
 typedef struct {
     struct TokenNode* root;
-    int layers; // TODO
 } AST;
 
 typedef struct{
@@ -32,6 +31,6 @@ void add_child(struct TokenNode* parent, struct TokenNode* child);
 void build_ast(Program* prog, AST* ast);
 void destroy_ast_node(struct TokenNode* node);
 void destroy_ast(AST* ast);
-void print_ast(struct TokenNode* root, int depth);
+void print_ast(struct TokenNode* root, int depth, int is_root);
 
 #endif

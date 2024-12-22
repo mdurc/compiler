@@ -46,44 +46,34 @@ void build_ast(Program* prog, AST* ast) {
     }
 
     ast->root = create_token_node(NULL);
-    Stack parents = {NULL, 0, 0};
+    Stack parent_stack = {NULL, 0, 0};
 
     for (int i=0; i<prog->token_count; ++i) {
         Token* curr_token = &prog->tokens[i];
         struct TokenNode* child_node = create_token_node(curr_token);
-
+        struct TokenNode* parent_node = parent_stack.size == 0 ? ast->root : parent_stack.buf[parent_stack.size-1];
+        
         if (curr_token->type == OPEN_BRACE){
-            if (parents.size == 0){
-                add_child(ast->root, child_node);
-                stack_push(&parents, &ast->root->children[ast->root->children_count-1]);
-            }else{
-                add_child(parents.buf[parents.size-1], child_node);
-                // push newest added child from parent
-                stack_push(&parents, &parents.buf[parents.size-1]->children[parents.buf[parents.size-1]->children_count-1]);
-            }
+            // open new ast layer
+            add_child(parent_node, child_node);
+            stack_push(&parent_stack, &parent_node->children[parent_node->children_count - 1]);
+
         } else if (curr_token->type == CLOSE_BRACE) {
-            stack_pop(&parents);
-            if (parents.size == 0){
-                add_child(ast->root, child_node);
-            }else{
-                add_child(parents.buf[parents.size-1], child_node);
-            }
+            // close ast layer
+            stack_pop(&parent_stack);
+            add_child(parent_node, child_node);
         } else {
-            if (parents.size == 0){
-                add_child(ast->root, child_node);
-            }else{
-                printf("Adding under brace (%d): %s\n", parents.size, child_node->token_data->data);
-                add_child(parents.buf[parents.size-1], child_node);
-                printf("%s's children incremented to %d\n", parents.buf[parents.size-1]->token_data->data, parents.buf[parents.size-1]->children_count);
-            }
+            // either adding to ast->root or adding within some ast layer
+            add_child(parent_node, child_node);
         }
     }
-    printf("PRINTED VALUE: %d\n", ast->root->children[4].children_count);
-    printf("NUM AST CHILDREN: %d\n", ast->root->children_count);
-    printf("PRINTED END: %d\n", ast->root->children[5].children_count);
 }
 
-void print_ast(struct TokenNode* root, int depth){
+void print_ast(struct TokenNode* root, int depth, int is_root){
+    if (is_root) {
+        printf("Root\n");
+        is_root = 0;
+    }
     if (!root) return;
     for (int i=0; i<depth; ++i){
         printf("-");
@@ -92,7 +82,7 @@ void print_ast(struct TokenNode* root, int depth){
         printf("%s\n", root->token_data->data);
     }
     for(int i=0; i<root->children_count; ++i){
-        print_ast(&root->children[i], depth+1);
+        print_ast(&root->children[i], depth+1, is_root);
     }
 }
 
