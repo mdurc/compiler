@@ -3,22 +3,20 @@
 #include <string.h>
 #include "parser.h"
 
-struct TokenNode* create_token_node(Token* token) {
-    struct TokenNode* node = (struct TokenNode*)malloc(sizeof(struct TokenNode));
-    node->token_data = token;
-    node->children = NULL;
-    node->children_count = 0;
-    return node;
-}
-
-void add_child(struct TokenNode* parent, struct TokenNode* child) {
+void add_child(struct TokenNode* parent, Token* child) {
     if (parent->children == NULL) {
-        parent->children = (struct TokenNode*)malloc(sizeof(struct TokenNode));
-    } else {
-        parent->children = (struct TokenNode*)realloc(parent->children, (parent->children_count + 1) * sizeof(struct TokenNode));
+        parent->children_capacity = 5;
+        parent->children = (struct TokenNode*)malloc(sizeof(struct TokenNode) * parent->children_capacity);
+    } else if (parent->children_count == parent->children_capacity){
+        parent->children_capacity *= 2;
+        parent->children = (struct TokenNode*)realloc(parent->children, sizeof(struct TokenNode) * parent->children_capacity);
     }
 
-    parent->children[parent->children_count] = *child;
+    parent->children[parent->children_count].children_count = 0;
+    parent->children[parent->children_count].children_capacity = 0;
+    parent->children[parent->children_count].children = NULL;
+    parent->children[parent->children_count].token_data = child;
+
     ++parent->children_count;
 }
 
@@ -45,27 +43,35 @@ void build_ast(Program* prog, AST* ast) {
         return;
     }
 
-    ast->root = create_token_node(NULL);
+    ast->root = (struct TokenNode*)malloc(sizeof(struct TokenNode));
+    ast->root->token_data = NULL;
+    ast->root->children = NULL;
+    ast->root->children_capacity = 0;
+    ast->root->children_count = 0;
+
     Stack parent_stack = {NULL, 0, 0};
 
     for (int i=0; i<prog->token_count; ++i) {
+    //for (int i=0; i<7; ++i) {
         Token* curr_token = &prog->tokens[i];
-        struct TokenNode* child_node = create_token_node(curr_token);
         struct TokenNode* parent_node = parent_stack.size == 0 ? ast->root : parent_stack.buf[parent_stack.size-1];
         
         if (curr_token->type == OPEN_BRACE){
             // open new ast layer
-            add_child(parent_node, child_node);
+            add_child(parent_node, curr_token);
             stack_push(&parent_stack, &parent_node->children[parent_node->children_count - 1]);
 
         } else if (curr_token->type == CLOSE_BRACE) {
             // close ast layer
             stack_pop(&parent_stack);
-            add_child(parent_node, child_node);
+            add_child(parent_node, curr_token);
         } else {
             // either adding to ast->root or adding within some ast layer
-            add_child(parent_node, child_node);
+            add_child(parent_node, curr_token);
         }
+    }
+    if (parent_stack.buf){
+        free(parent_stack.buf);
     }
 }
 
@@ -86,20 +92,20 @@ void print_ast(struct TokenNode* root, int depth, int is_root){
     }
 }
 
-
-void destroy_ast_node(struct TokenNode* node) {
-    if (node) {
-        for (int i = 0; i < node->children_count; ++i) {
-            destroy_ast_node(&node->children[i]);
+void free_ast_children(struct TokenNode* node) {
+    if (!node) return;
+    for (int i = 0; i < node->children_count; ++i){
+        // search all possible depths
+        if (node->children[i].children_count > 0){
+            free_ast_children(&node->children[i]);
         }
-        free(node->children);
-        free(node);
     }
+    // we have found a node that, for all its children, has no more depth
+    if (node->children) free(node->children);
 }
 
-void destroy_ast(AST* ast) {
-    if (ast) {
-        destroy_ast_node(ast->root);
-        free(ast);
-    }
+void free_ast(AST* ast){
+    if (ast == NULL) return;
+    free_ast_children(ast->root);
+    free(ast->root);
 }

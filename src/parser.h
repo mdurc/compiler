@@ -13,6 +13,7 @@ struct TokenNode {
     Token* token_data;
     struct TokenNode* children;
     int children_count;
+    int children_capacity;
 };
 
 // abstract syntax tree
@@ -26,11 +27,10 @@ typedef struct{
     int capacity;
 } Stack;
 
-struct TokenNode* create_token_node(Token* token);
-void add_child(struct TokenNode* parent, struct TokenNode* child);
+void add_child(struct TokenNode* parent, Token* child);
 void build_ast(Program* prog, AST* ast);
-void destroy_ast_node(struct TokenNode* node);
-void destroy_ast(AST* ast);
+void free_ast_children(struct TokenNode* node);
+void free_ast(AST* ast);
 void print_ast(struct TokenNode* root, int depth, int is_root);
 
 #endif

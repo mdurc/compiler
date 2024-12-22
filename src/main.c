@@ -2,7 +2,7 @@
 #include "lexer.h"
 #include "parser.h"
 
-void free_program(Program* prog){
+void free_program_tokens(Program* prog){
     int i;
     for (i=0; i<prog->token_count; ++i) {
         free(prog->tokens[i].data);
@@ -25,7 +25,8 @@ int main(int argc, char** argv){
 
     print_ast(ast.root, 0, 1);
 
-    free_program(&prog);
+    free_ast(&ast);
+    free_program_tokens(&prog);
     fclose(fp);
     return EXIT_SUCCESS;
 }
