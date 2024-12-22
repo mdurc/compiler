@@ -6,8 +6,10 @@ void free_program_tokens(Program* prog){
     int i;
     for (i=0; i<prog->token_count; ++i) {
         free(prog->tokens[i].data);
+        prog->tokens[i].data = NULL;
     }
     free(prog->tokens);
+    prog->tokens = NULL;
 }
 
 int main(int argc, char** argv){

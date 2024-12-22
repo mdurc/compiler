@@ -38,6 +38,7 @@ void add_token(Token** tokens, int* token_count, int* token_capacity, Token* tok
     (*tokens)[*token_count] = *token;
     ++(*token_count);
     free(token); // free the token (but not the char* within it)
+    token = NULL;
 }
 
 void lex_file(FILE* fp, Token** tokens, int* token_count, int* token_capacity){
@@ -69,10 +70,58 @@ void lex_file(FILE* fp, Token** tokens, int* token_count, int* token_capacity){
             case ';': add_token(tokens, token_count, token_capacity, create_token(SEMICOLON, ";", line)); break;
             case '/': add_token(tokens, token_count, token_capacity, create_token(SLASH, "/", line)); break;
             case '*': add_token(tokens, token_count, token_capacity, create_token(STAR, "*", line)); break;
+            case '!': 
+                // check for != or just !
+                if ((c = getc(fp)) == '=') {
+                    add_token(tokens, token_count, token_capacity, create_token(BANG_EQUAL, "!=", line));
+                }else{
+                    ungetc(c, fp);
+                    add_token(tokens, token_count, token_capacity, create_token(BANG, "!", line));
+                }
+                break;
+            case '=':
+                // check for == or just =
+                if ((c = getc(fp)) == '=') {
+                    add_token(tokens, token_count, token_capacity, create_token(EQUAL_EQUAL, "==", line));
+                }else{
+                    ungetc(c, fp);
+                    add_token(tokens, token_count, token_capacity, create_token(EQUAL, "=", line));
+                }
+                break;
+            case '>':
+                // check for >= or just >
+                if ((c = getc(fp)) == '=') {
+                    add_token(tokens, token_count, token_capacity, create_token(GREATER_EQUAL, ">=", line));
+                }else{
+                    ungetc(c, fp);
+                    add_token(tokens, token_count, token_capacity, create_token(GREATER, ">", line));
+                }
+                break;
+            case '<':
+                // check for <= or just <
+                if ((c = getc(fp)) == '=') {
+                    add_token(tokens, token_count, token_capacity, create_token(LESS_EQUAL, "<=", line));
+                }else{
+                    ungetc(c, fp);
+                    add_token(tokens, token_count, token_capacity, create_token(LESS, "<", line));
+                }
+                break;
+            case '"':
+                // string
+                buf[0] = c;
+                int i = 1;
+                while ((c = getc(fp))) {
+                    buf[i] = c;
+                    ++i;
+                    if (c == '"') break;
+                }
+                buf[i] = '\0';
+                add_token(tokens, token_count, token_capacity, create_token(STRING, buf, line));
+                break;
             default:
                 buf[0] = c;
                 if (isalpha(c)){
-                    // identifier or keyword
+                    // identifier or keyword or main
                     int i = 1;
                     while (isalnum(c = getc(fp)) || c == '_') {
                         buf[i] = c;
