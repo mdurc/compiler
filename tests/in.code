@@ -1,6 +1,4 @@
 main(){
-    if (true) {
-        print_string("test\n")
-    }
+    print_string("test\n")
     return 0
 }
