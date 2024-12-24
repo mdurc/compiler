@@ -1,4 +1,4 @@
 main(){
-    print_string("test\n")
+    print_string("test\n" "new\n")
     return 0
 }
