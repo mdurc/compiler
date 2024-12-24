@@ -167,6 +167,12 @@ void free_ast_children(struct TokenNode* node) {
 void free_ast(AST* ast){
     if (ast == NULL) return;
     free_ast_children(ast->root);
+
+    free(ast->root->token_data->data);
+    free(ast->root->token_data);
     free(ast->root);
+
+    ast->root->token_data->data = NULL;
+    ast->root->token_data = NULL;
     ast->root = NULL;
 }
