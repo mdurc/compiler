@@ -1,1 +1,2 @@
-make clean && make && echo "\n\n" && leaks --atExit -- ./a.out tests/in.code
+#!/bin/bash
+make clean && make && echo -e "\n\n" && leaks --atExit -- ./a.out $1

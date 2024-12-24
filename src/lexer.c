@@ -3,7 +3,8 @@
 
 Keyword keywords[] = {
     {"and", AND}, {"or", OR}, {"if", IF}, {"else", ELSE}, {"true", TRUE}, {"false", FALSE},
-    {"for", FOR}, {"while", WHILE}, {"int", INT}, {"main", MAIN}, {"print", PRINT}, {"return", RETURN},
+    {"for", FOR}, {"while", WHILE}, {"main", MAIN}, {"print", PRINT}, {"return", RETURN},
+    {"string", STRING_TYPE}, {"int", INT_TYPE},
 };
 
 TokenType check_keyword(const char* str) {
@@ -29,7 +30,7 @@ void add_token(Token** tokens, int* token_count, int* token_capacity, Token* tok
         *token_capacity *= 2;
         *tokens = realloc(*tokens, sizeof(Token) * (*token_capacity));
         if (*tokens == NULL) {
-            fprintf(stderr, "Realloc Failed\n");
+            fprintf(stderr, "Error: Realloc Failed on add_token\n");
             exit(EXIT_FAILURE);
         }
     }
@@ -116,7 +117,7 @@ void lex_file(FILE* fp, Token** tokens, int* token_count, int* token_capacity){
                     if (c == '"') break;
                 }
                 buf[i] = '\0';
-                add_token(tokens, token_count, token_capacity, create_token(STRING, buf, line));
+                add_token(tokens, token_count, token_capacity, create_token(STRING_LITERAL, buf, line));
                 break;
             default:
                 buf[0] = c;
@@ -140,7 +141,7 @@ void lex_file(FILE* fp, Token** tokens, int* token_count, int* token_capacity){
                     }
                     buf[i] = '\0';
                     ungetc(c, fp);
-                    add_token(tokens, token_count, token_capacity, create_token(INT, buf, line));
+                    add_token(tokens, token_count, token_capacity, create_token(INT_LITERAL, buf, line));
                 } else {
                     fprintf(stderr, "Illegal token: '%c' on line %d\n", c, line);
                     exit(EXIT_FAILURE);

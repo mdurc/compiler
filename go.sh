@@ -1,1 +1,2 @@
-make clean && make && echo "\n\n" && ./a.out tests/in.code && echo "\n\n" && cat out.asm && echo "\n\n" && spim out.asm
+#!/bin/bash
+make clean && make && echo -e "\n\n" && ./a.out $1 && echo -e "\n\n" && cat out.asm && echo -e "\n\n" && spim out.asm

@@ -14,7 +14,7 @@ typedef enum{
     BANG, BANG_EQUAL, EQUAL, EQUAL_EQUAL,
     GREATER, GREATER_EQUAL, LESS, LESS_EQUAL,
 
-    IDENTIFIER, STRING, INT, MAIN,
+    IDENTIFIER, STRING_LITERAL, INT_LITERAL, STRING_TYPE, INT_TYPE, MAIN,
 
     AND, OR, IF, ELSE, TRUE, FALSE, FOR, WHILE, PRINT, RETURN,
 
@@ -31,9 +31,6 @@ typedef struct {
     const char* keyword;
     TokenType type;
 } Keyword;
-
-extern Keyword keywords[];
-
 
 TokenType check_keyword(const char* str);
 Token* create_token(TokenType type, const char* data, int line);

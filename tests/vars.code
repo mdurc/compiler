@@ -1,0 +1,8 @@
+main(){
+    string x = "test var1"
+    int y = 15
+    string z = "i am var3"
+
+    print("Testing string variable x: " x "\nTesting int variable y: " y "\nTesting string variable z: " z "\n")
+    return 0
+}

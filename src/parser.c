@@ -46,7 +46,7 @@ const char *token_type_to_string[] = {
     "BANG", "BANG_EQUAL", "EQUAL", "EQUAL_EQUAL",
     "GREATER", "GREATER_EQUAL", "LESS", "LESS_EQUAL",
 
-    "IDENTIFIER", "STRING", "INT", "MAIN",
+    "IDENTIFIER", "STRING_LITERAL", "INT_LITERAL", "STRING_TYPE", "INT_TYPE", "MAIN",
 
     "AND", "OR", "IF", "ELSE", "TRUE", "FALSE", "FOR", "WHILE", 
     "PRINT", "RETURN", "ROOT"
@@ -55,7 +55,7 @@ const char *token_type_to_string[] = {
 // TODO: verify program ast is within context free language of the program
 void build_ast(Program* prog, AST* ast) {
     if (!prog || prog->token_count == 0) {
-        fprintf(stderr, "Program has no tokens.\n");
+        fprintf(stderr, "Error: Program has no tokens.\n");
         return;
     }
 
@@ -67,10 +67,12 @@ void build_ast(Program* prog, AST* ast) {
 
     Stack parent_stack = {NULL, 0, 0};
     stack_push(&parent_stack, ast->root);
+
     TokenType parent_keywords[][2] = {{IF, CLOSE_BRACE}, {ELSE, CLOSE_BRACE},
                                     {WHILE, CLOSE_BRACE}, {FOR, CLOSE_BRACE},
-                                    {MAIN, CLOSE_BRACE}, {RETURN, INT},
-                                    {PRINT, CLOSE_PAREN}};
+                                    {MAIN, CLOSE_BRACE}, {RETURN, INT_LITERAL},
+                                    {PRINT, CLOSE_PAREN}, {STRING_TYPE, STRING_LITERAL}, {INT_TYPE, INT_LITERAL}};
+
     TokenType parent_enclosers[][2] = {{OPEN_BRACE, CLOSE_BRACE}, {OPEN_PAREN, CLOSE_PAREN},
                                     {OPEN_BRACKET, CLOSE_BRACKET}};
 
