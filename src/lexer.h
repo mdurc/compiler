@@ -16,8 +16,9 @@ typedef enum{
 
     IDENTIFIER, STRING, INT, MAIN,
 
-    AND, OR, IF, ELSE, TRUE, FALSE, FOR, WHILE, PRINT_INT,
-    PRINT_STRING, RETURN
+    AND, OR, IF, ELSE, TRUE, FALSE, FOR, WHILE, PRINT, RETURN,
+
+    ROOT
 } TokenType;
 
 typedef struct{

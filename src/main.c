@@ -26,7 +26,7 @@ int main(int argc, char** argv){
     AST ast;
     build_ast(&prog, &ast);
 
-    print_ast(ast.root, 0, 1);
+    print_ast(ast.root, 0);
 
     generate_mips_code(&ast, "out.asm");
 

@@ -1,4 +1,5 @@
 main(){
-    print_string("test\n" "new\n")
+    print(32 "\nhi there\n" 15 ": is the answer\n")
+    print("this is a new print line\n")
     return 0
 }

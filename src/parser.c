@@ -37,6 +37,21 @@ void stack_pop(Stack* s){
     --s->size;
 }
 
+// TODO: this is only a helper for debugging
+const char *token_type_to_string[] = {
+    "OPEN_PAREN", "CLOSE_PAREN", "OPEN_BRACE", "CLOSE_BRACE",
+    "OPEN_BRACKET", "CLOSE_BRACKET",
+    "COMMA", "DOT", "MINUS", "PLUS", "SLASH", "STAR",
+
+    "BANG", "BANG_EQUAL", "EQUAL", "EQUAL_EQUAL",
+    "GREATER", "GREATER_EQUAL", "LESS", "LESS_EQUAL",
+
+    "IDENTIFIER", "STRING", "INT", "MAIN",
+
+    "AND", "OR", "IF", "ELSE", "TRUE", "FALSE", "FOR", "WHILE", 
+    "PRINT", "RETURN", "ROOT"
+};
+
 // TODO: verify program ast is within context free language of the program
 void build_ast(Program* prog, AST* ast) {
     if (!prog || prog->token_count == 0) {
@@ -45,23 +60,27 @@ void build_ast(Program* prog, AST* ast) {
     }
 
     ast->root = (struct TokenNode*)malloc(sizeof(struct TokenNode));
-    ast->root->token_data = NULL;
+    ast->root->token_data = create_token(ROOT, "", 0);
     ast->root->children = NULL;
     ast->root->children_capacity = 0;
     ast->root->children_count = 0;
 
     Stack parent_stack = {NULL, 0, 0};
+    stack_push(&parent_stack, ast->root);
     TokenType parent_keywords[][2] = {{IF, CLOSE_BRACE}, {ELSE, CLOSE_BRACE},
                                     {WHILE, CLOSE_BRACE}, {FOR, CLOSE_BRACE},
                                     {MAIN, CLOSE_BRACE}, {RETURN, INT},
-                                    {PRINT_STRING, CLOSE_PAREN}, {PRINT_INT, CLOSE_PAREN}};
+                                    {PRINT, CLOSE_PAREN}};
     TokenType parent_enclosers[][2] = {{OPEN_BRACE, CLOSE_BRACE}, {OPEN_PAREN, CLOSE_PAREN},
                                     {OPEN_BRACKET, CLOSE_BRACKET}};
 
     for (int i=0; i<prog->token_count; ++i) {
-    //for (int i=0; i<7; ++i) {
+        if (parent_stack.size == 0) break; // we removed the root
+
         Token* curr_token = &prog->tokens[i];
-        struct TokenNode* parent_node = parent_stack.size == 0 ? ast->root : parent_stack.buf[parent_stack.size-1];
+        struct TokenNode* parent_node = parent_stack.buf[parent_stack.size-1];
+        // TODO: remove print
+        //printf("Curr top of stack: %s\n", token_type_to_string[parent_node->token_data->type]);
 
         // TokenNode is 4 bytes, each parent_token is one tokens
         int new_layer = 0;
@@ -72,10 +91,11 @@ void build_ast(Program* prog, AST* ast) {
                 new_layer = -1; break;
             }
         }
-        for (int j=0; j < (int)(sizeof(parent_keywords)/sizeof(TokenType)); ++j){
+        for (int j=0; j < (int)(sizeof(parent_keywords)/(sizeof(TokenType)*2)); ++j){
             if (curr_token->type == parent_keywords[j][0]){
                 new_layer = 1; break;
-            }else if (curr_token->type == parent_keywords[j][1]){
+            }else if (parent_node->token_data->type == parent_keywords[j][0]
+                     && curr_token->type == parent_keywords[j][1]){
                 new_layer = -1; break;
             }
         }
@@ -86,59 +106,46 @@ void build_ast(Program* prog, AST* ast) {
 
         } else if (new_layer == -1) {
             // close ast layer
+            //printf("POPPING: %s\n", token_type_to_string[parent_node->token_data->type]); // TODO: remove
+            add_child(parent_node, curr_token); // add the child that terminates this parent layer
             stack_pop(&parent_stack);
+            parent_node = parent_stack.buf[parent_stack.size-1]; // have to update the new top of stack
 
             // Go back to original scope of conditonal
-            if (parent_stack.size > 0){
-                for (int j=0; j < (int)(sizeof(parent_keywords)/sizeof(TokenType)); ++j){
-                    if (parent_stack.buf[parent_stack.size-1]->token_data->type == parent_keywords[j][0] &&
-                            curr_token->type == parent_keywords[j][1]){
-                        stack_pop(&parent_stack);
-                        break;
-                    }
+            for (int j=0; j < (int)(sizeof(parent_keywords)/(sizeof(TokenType)*2)); ++j){
+                // TODO: remove prints
+                //printf("STACK TOP (%s) VS KEYWORD (%s), should we pop??: %s vs %s\n", token_type_to_string[parent_node->token_data->type],
+                //        token_type_to_string[parent_keywords[j][0]], token_type_to_string[curr_token->type], token_type_to_string[parent_keywords[j][1]]);
+                if (parent_node->token_data->type == parent_keywords[j][0] && curr_token->type == parent_keywords[j][1]){
+                    // TODO: remove
+                    //printf("POPPING KEYWORD: %s\n", token_type_to_string[parent_node->token_data->type]);
+                    stack_pop(&parent_stack);
+                    parent_node = parent_stack.buf[parent_stack.size-1]; // have to update the new top of stack
+                    break;
                 }
             }
-
-            add_child(parent_node, curr_token);
         } else {
             // either adding to ast->root or adding within some ast layer
             add_child(parent_node, curr_token);
         }
     }
-    if (parent_stack.buf){
+    if (parent_stack.buf){ // only the root should remain in stack
         free(parent_stack.buf);
         parent_stack.buf = NULL;
     }
 }
 
-void print_ast(struct TokenNode* root, int depth, int is_root){
-    if (is_root) {
-        printf("Root\n");
-        is_root = 0;
-    }
+void print_ast(struct TokenNode* root, int depth){
     if (!root) return;
     for (int i=0; i<depth; ++i){
         printf("-");
     }
-    const char *token_type_to_string[] = {
-        "OPEN_PAREN", "CLOSE_PAREN", "OPEN_BRACE", "CLOSE_BRACE",
-        "OPEN_BRACKET", "CLOSE_BRACKET",
-        "COMMA", "DOT", "MINUS", "PLUS", "SLASH", "STAR",
-
-        "BANG", "BANG_EQUAL", "EQUAL", "EQUAL_EQUAL",
-        "GREATER", "GREATER_EQUAL", "LESS", "LESS_EQUAL",
-
-        "IDENTIFIER", "STRING", "INT", "MAIN",
-
-        "AND", "OR", "IF", "ELSE", "TRUE", "FALSE", "FOR", "WHILE", 
-        "PRINT_INT", "PRINT_STRING", "RETURN"
-    };
     if (root->token_data){
         printf("%s\t\t(%s, %d)\n", root->token_data->data,
                token_type_to_string[root->token_data->type], root->children_count);
     }
     for(int i=0; i<root->children_count; ++i){
-        print_ast(&root->children[i], depth+1, is_root);
+        print_ast(&root->children[i], depth+1);
     }
 }
 

@@ -3,8 +3,7 @@
 
 Keyword keywords[] = {
     {"and", AND}, {"or", OR}, {"if", IF}, {"else", ELSE}, {"true", TRUE}, {"false", FALSE},
-    {"for", FOR}, {"while", WHILE}, {"int", INT}, {"main", MAIN}, {"print_int", PRINT_INT},
-    {"print_string", PRINT_STRING}, {"return", RETURN},
+    {"for", FOR}, {"while", WHILE}, {"int", INT}, {"main", MAIN}, {"print", PRINT}, {"return", RETURN},
 };
 
 TokenType check_keyword(const char* str) {

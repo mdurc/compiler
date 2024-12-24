@@ -106,20 +106,25 @@ void generate_mips_code(AST* ast, const char* output_filename) {
     free_buffer(&buffer);
 }
 
-void handle_print_string(struct TokenNode* node, CodeBuffer* buffer){
+void handle_print(struct TokenNode* node, CodeBuffer* buffer){
     if (node->children_count == 1 && node->children[0].token_data->type == OPEN_PAREN){
         if (node->children[0].children_count >= 1){
 
             struct TokenNode* open_paren = &node->children[0];
-            append_to_buffer(buffer, 0, "li $v0, 4\n");
             // exclude the closing parenthesis child at the end
             for(int i=0; i < (open_paren->children_count-1); ++i){
-                if (open_paren->children[i].token_data->type != STRING) continue;
-
-                const char* label = generate_label(buffer);
-                append_to_buffer(buffer, 1, "%s: .asciiz %s\n", label, open_paren->children[i].token_data->data);
-                append_to_buffer(buffer, 0, "la $a0, %s\n", label);
-                append_to_buffer(buffer, 0, "syscall\n");
+                TokenType t = open_paren->children[i].token_data->type;
+                if (t == STRING){
+                    const char* label = generate_label(buffer);
+                    append_to_buffer(buffer, 1, "%s: .asciiz %s\n", label, open_paren->children[i].token_data->data);
+                    append_to_buffer(buffer, 0, "la $a0, %s\n", label);
+                    append_to_buffer(buffer, 0, "li $v0, 4\n");
+                    append_to_buffer(buffer, 0, "syscall\n");
+                }else if (t == INT){
+                    append_to_buffer(buffer, 0, "li $a0, %s\n", open_paren->children[i].token_data->data);
+                    append_to_buffer(buffer, 0, "li $v0, 1\n");
+                    append_to_buffer(buffer, 0, "syscall\n");
+                }
             }
         }
     }
@@ -136,10 +141,8 @@ void generate_code(struct TokenNode* node, CodeBuffer* buffer) {
         case RETURN:
             handle_statement(node, buffer);
             break;
-        case PRINT_INT:
-            break;
-        case PRINT_STRING: 
-            handle_print_string(node, buffer);
+        case PRINT:
+            handle_print(node, buffer);
             break;
         default: break;
     }
@@ -165,7 +168,7 @@ void handle_function(struct TokenNode* node, CodeBuffer* buffer) {
         generate_code(&brace->children[i], buffer);
     }
     if (!has_return) {
-        fprintf(stderr, "No return statemnt on function: %s\n", node->token_data->data);
+        fprintf(stderr, "No return statement on function: %s\n", node->token_data->data);
         exit(EXIT_FAILURE);
     }
 
