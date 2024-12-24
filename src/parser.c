@@ -172,7 +172,5 @@ void free_ast(AST* ast){
     free(ast->root->token_data);
     free(ast->root);
 
-    ast->root->token_data->data = NULL;
-    ast->root->token_data = NULL;
     ast->root = NULL;
 }
