@@ -1,0 +1,54 @@
+main(){
+    int x = 32
+    if (3 == 3) {
+        print("Valid\n")
+    }
+    if (x == 32) {
+        print("Valid\n")
+    }
+    if (x == 3) {
+        print("Invalid\n")
+    }
+    if (32 == x) {
+        print("Valid\n")
+    }
+    int y = 15
+    if (x == y) {
+        print("Invalid\n")
+    }
+    if (y == x) {
+        print("Invalid\n")
+    }
+    if (x != y) {
+        print("Valid !=\n")
+    }
+    if (y < x) {
+        print("Valid <\n")
+    }
+    if (x <= x) {
+        print("Valid <=\n")
+    }
+    int z = 15
+    if (y == z) {
+        print("Valid\n")
+    }
+    if (z == y) {
+        print("Valid\n")
+    }
+    string a = "test"
+    string g = "test"
+    if (a == g) {
+        print("Valid\n")
+    }
+    if (g == a) {
+        print("Valid\n")
+    }
+    string c = "wrong"
+    if (a == c) {
+        print("Invalid\n")
+    }
+    if (c == a) {
+        print("Invalid\n")
+    }
+    return 0
+}

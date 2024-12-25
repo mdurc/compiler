@@ -31,6 +31,6 @@ void generate_mips_code(AST* ast, const char* output_filename);
 void generate_code(struct TokenNode* node, CodeBuffer* buffer, SymbolTable* symbol_table);
 void handle_function(struct TokenNode* node, CodeBuffer* buffer, SymbolTable* symbol_table);
 void handle_statement(struct TokenNode* node, CodeBuffer* buffer);
-const char* generate_label(CodeBuffer* buffer);
+char* generate_label(CodeBuffer* buffer);
 
 #endif

@@ -7,7 +7,7 @@ void init_symbol_table(SymbolTable* table) {
     table->symbols = (Symbol*)malloc(table->capacity * sizeof(Symbol));
 }
 
-void add_symbol(SymbolTable* table, const char* name, TokenType type) {
+void add_symbol(SymbolTable* table, const char* name, TokenType type, const char* value) {
     // check if symbol is already in table (duplicate varaible)
     if (find_symbol(table, name)){
         fprintf(stderr, "Error: Symbol '%s' already declared.\n", name);
@@ -23,6 +23,7 @@ void add_symbol(SymbolTable* table, const char* name, TokenType type) {
 
     strncpy(symbol->name, name, sizeof(symbol->name));
     symbol->type = type;
+    strncpy(symbol->value, value, sizeof(symbol->value));
 }
 
 Symbol* find_symbol(SymbolTable* table, const char* name) {
