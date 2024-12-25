@@ -1,25 +1,13 @@
 .data
-x: .word 32
-L1: .asciiz "Valid\n"
-L3: .asciiz "Valid\n"
-L5: .asciiz "Invalid\n"
-L7: .asciiz "Valid\n"
-y: .word 15
-L9: .asciiz "Invalid\n"
-L11: .asciiz "Invalid\n"
-L13: .asciiz "Valid !=\n"
-L15: .asciiz "Valid <\n"
-L17: .asciiz "Valid <=\n"
-z: .word 15
-L19: .asciiz "Valid\n"
-L21: .asciiz "Valid\n"
-a: .asciiz "test"
-g: .asciiz "test"
-L23: .asciiz "Valid\n"
-L25: .asciiz "Valid\n"
-c: .asciiz "wrong"
-L27: .asciiz "Invalid\n"
-L29: .asciiz "Invalid\n"
+n: .word 15
+i: .word 1
+t: .word 0
+k: .word 0
+L3: .asciiz "Fizz"
+L5: .asciiz "Buzz"
+L6: .asciiz "\n"
+L9: .asciiz "Buzz\n"
+L12: .asciiz "\n"
 
 .text
 .align 2
@@ -31,176 +19,142 @@ addi $sp, $sp, -4
 sw $ra, 0($sp)
 # function content
 
-li $t0, 3
-li $t1, 3
-seq $t0, $t0, $t1
-beq $t0, $zero, L0
-
-la $a0, L1
-li $v0, 4
-syscall
-
 L0:
-la $t1, x
+la $t1, i
 lw $t0, 0($t1)
-li $t1, 32
-seq $t0, $t0, $t1
-beq $t0, $zero, L2
+la $t2, n
+lw $t1, 0($t2)
+sle $v0, $t0, $t1
+beq $v0, $zero, L1
+
+la $t0, t
+lw $t1, 0($t0)
+la $t2, i
+lw $t2, 0($t2)
+li $t3, 3
+div $t2, $t3
+mfhi $t1
+sw $t1, 0($t0)
+la $t0, k
+lw $t1, 0($t0)
+la $t2, i
+lw $t2, 0($t2)
+li $t3, 5
+div $t2, $t3
+mfhi $t1
+sw $t1, 0($t0)
+la $t1, t
+lw $t0, 0($t1)
+li $t1, 0
+seq $v0, $t0, $t1
+beq $v0, $zero, L2
 
 la $a0, L3
 li $v0, 4
 syscall
 
-L2:
-la $t1, x
+la $t1, k
 lw $t0, 0($t1)
-li $t1, 3
-seq $t0, $t0, $t1
-beq $t0, $zero, L4
+li $t1, 0
+seq $v0, $t0, $t1
+beq $v0, $zero, L4
 
 la $a0, L5
 li $v0, 4
 syscall
 
 L4:
-li $t0, 32
-la $t2, x
-lw $t1, 0($t2)
-seq $t0, $t0, $t1
-beq $t0, $zero, L6
-
-la $a0, L7
+la $a0, L6
 li $v0, 4
 syscall
 
-L6:
-la $t1, x
+L2:
+la $t1, t
 lw $t0, 0($t1)
-la $t2, y
-lw $t1, 0($t2)
-seq $t0, $t0, $t1
-beq $t0, $zero, L8
+li $t1, 0
+sne $v0, $t0, $t1
+beq $v0, $zero, L7
+
+la $t1, k
+lw $t0, 0($t1)
+li $t1, 0
+seq $v0, $t0, $t1
+beq $v0, $zero, L8
 
 la $a0, L9
 li $v0, 4
 syscall
 
 L8:
-la $t1, y
+L7:
+la $t1, t
 lw $t0, 0($t1)
-la $t2, x
-lw $t1, 0($t2)
-seq $t0, $t0, $t1
-beq $t0, $zero, L10
+li $t1, 0
+sne $v0, $t0, $t1
+beq $v0, $zero, L10
 
-la $a0, L11
+la $t1, k
+lw $t0, 0($t1)
+li $t1, 0
+sne $v0, $t0, $t1
+beq $v0, $zero, L11
+
+la $t0, i
+lw $a0, 0($t0)
+li $v0, 1
+syscall
+
+la $a0, L12
 li $v0, 4
 syscall
 
+L11:
 L10:
-la $t1, x
-lw $t0, 0($t1)
-la $t2, y
-lw $t1, 0($t2)
-sne $t0, $t0, $t1
-beq $t0, $zero, L12
-
-la $a0, L13
-li $v0, 4
-syscall
-
-L12:
-la $t1, y
-lw $t0, 0($t1)
-la $t2, x
-lw $t1, 0($t2)
-slt $t0, $t0, $t1
-beq $t0, $zero, L14
-
-la $a0, L15
-li $v0, 4
-syscall
-
-L14:
-la $t1, x
-lw $t0, 0($t1)
-la $t2, x
-lw $t1, 0($t2)
-sle $t0, $t0, $t1
-beq $t0, $zero, L16
-
-la $a0, L17
-li $v0, 4
-syscall
-
-L16:
-la $t1, y
-lw $t0, 0($t1)
-la $t2, z
-lw $t1, 0($t2)
-seq $t0, $t0, $t1
-beq $t0, $zero, L18
-
-la $a0, L19
-li $v0, 4
-syscall
-
-L18:
-la $t1, z
-lw $t0, 0($t1)
-la $t2, y
-lw $t1, 0($t2)
-seq $t0, $t0, $t1
-beq $t0, $zero, L20
-
-la $a0, L21
-li $v0, 4
-syscall
-
-L20:
-li $t0, 1
-li $t1, 1
-seq $t0, $t0, $t1
-beq $t0, $zero, L22
-
-la $a0, L23
-li $v0, 4
-syscall
-
-L22:
-li $t0, 1
-li $t1, 1
-seq $t0, $t0, $t1
-beq $t0, $zero, L24
-
-la $a0, L25
-li $v0, 4
-syscall
-
-L24:
-li $t0, 1
-li $t1, 0
-seq $t0, $t0, $t1
-beq $t0, $zero, L26
-
-la $a0, L27
-li $v0, 4
-syscall
-
-L26:
-li $t0, 1
-li $t1, 0
-seq $t0, $t0, $t1
-beq $t0, $zero, L28
-
-la $a0, L29
-li $v0, 4
-syscall
-
-L28:
+la $t0, i
+lw $t1, 0($t0)
+li $t2, 1
+add $t1, $t1, $t2
+sw $t1, 0($t0)
+j L0
+L1:
 # returning here
 li $v0, 0
 # unloading function
 lw $ra, 0($sp)
 addi $sp, $sp, 4
 jr $ra
+
+# ====== START STRCMP ======
+strcmp:
+move $t0, $zero
+move $t1, $a0
+move $t2, $a1
+strcmp_loop:
+# read current byte
+lb $t3, 0($t1)
+lb $t4, 0($t2)
+beq $t3, $zero, strcmp_checklower  # s1 is finished
+beq $t4, $zero, strcmp_higher      #str2 is finished
+blt $t3, $t4, strcmp_lower         #if str1 < str2 -> str1 is strcmp_lower
+bgt $t3, $t4, strcmp_higher        #if str1 > str2 -> str1 is strcmp_higher
+# move to next bytes
+addi $t1, $t1,1
+addi $t2, $t2,1
+j strcmp_loop
+
+strcmp_checklower: # if str2 is not finished str1 < str2
+beq $t4, $zero, strcmp_equal
+j strcmp_lower
+
+strcmp_equal:
+li $v0, 1
+jr $ra
+
+strcmp_lower:
+li $v0, 0
+jr $ra
+
+strcmp_higher:
+li $v0, 0
+jr $ra
+# ====== END STRCMP ======

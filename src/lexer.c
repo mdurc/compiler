@@ -2,7 +2,7 @@
 #include "lexer.h"
 
 Keyword keywords[] = {
-    {"and", AND}, {"or", OR}, {"if", IF}, {"else", ELSE}, {"true", TRUE}, {"false", FALSE},
+    {"if", IF}, {"true", TRUE}, {"false", FALSE},
     {"for", FOR}, {"while", WHILE}, {"main", MAIN}, {"print", PRINT}, {"return", RETURN},
     {"string", STRING_TYPE}, {"int", INT_TYPE},
 };
@@ -53,6 +53,12 @@ void lex_file(FILE* fp, Token** tokens, int* token_count, int* token_capacity){
 
     char c;
     while ((c = getc(fp)) != EOF) {
+        if (c == '#'){
+            // move to the end of the line and go to next line
+            while ((c = getc(fp)) != EOF && c != '\n');
+            ++line;
+            continue;
+        }
         if (isspace(c)) {
             if (c == '\n') ++line;
             continue;
@@ -67,10 +73,28 @@ void lex_file(FILE* fp, Token** tokens, int* token_count, int* token_capacity){
             case ']': add_token(tokens, token_count, token_capacity, create_token(CLOSE_BRACKET, "]", line)); break;
             case ',': add_token(tokens, token_count, token_capacity, create_token(COMMA, ",", line)); break;
             case '.': add_token(tokens, token_count, token_capacity, create_token(DOT, ".", line)); break;
-            case '-': add_token(tokens, token_count, token_capacity, create_token(MINUS, "-", line)); break;
-            case '+': add_token(tokens, token_count, token_capacity, create_token(PLUS, "+", line)); break;
             case '/': add_token(tokens, token_count, token_capacity, create_token(SLASH, "/", line)); break;
             case '*': add_token(tokens, token_count, token_capacity, create_token(STAR, "*", line)); break;
+            case ';': add_token(tokens, token_count, token_capacity, create_token(SEMICOLON, ";", line)); break;
+            case '&': add_token(tokens, token_count, token_capacity, create_token(AND, "&", line)); break;
+            case '|': add_token(tokens, token_count, token_capacity, create_token(OR, "|", line)); break;
+            case '%': add_token(tokens, token_count, token_capacity, create_token(MODULO, "%", line)); break;
+            case '-': 
+                if ((c = getc(fp)) == '=') {
+                    add_token(tokens, token_count, token_capacity, create_token(MINUS_EQUAL, "-=", line));
+                }else{
+                    ungetc(c, fp);
+                    add_token(tokens, token_count, token_capacity, create_token(MINUS, "-", line));
+                }
+                break;
+            case '+':
+                if ((c = getc(fp)) == '=') {
+                    add_token(tokens, token_count, token_capacity, create_token(PLUS_EQUAL, "+=", line));
+                }else{
+                    ungetc(c, fp);
+                    add_token(tokens, token_count, token_capacity, create_token(PLUS, "+", line));
+                }
+                break;
             case '!': 
                 // check for != or just !
                 if ((c = getc(fp)) == '=') {

@@ -45,10 +45,18 @@ main(){
     }
     string c = "wrong"
     if (a == c) {
-        print("Invalid\n")
+        print("CORRECT\n")
     }
     if (c == a) {
-        print("Invalid\n")
+        print("CORRECT\n")
+    }
+    int m = 1
+    int n = 1
+    if (m & n){
+        print("AND working\n")
+    }
+    if (m | n){
+        print("OR working\n")
     }
     return 0
 }

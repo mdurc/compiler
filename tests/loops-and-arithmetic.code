@@ -1,0 +1,55 @@
+main () {
+    int i = 0
+    int n = 15
+    while (i <= n){
+        print(i "\n")
+        += i 1;
+    }
+    print("\n")
+    while (i >= 0) {
+        print(i "\n")
+        -= i 2;
+    }
+
+    + i 8 24;
+    print("Is i==32? " i)
+    if (i == 32){
+        print("... YES!\n")
+    }
+
+    + i n n;
+    print(i "\n")
+    + i n 3;
+    print(i "\n")
+    - i n 3;
+    print(i "\n")
+    + i i 3;
+    print(i "\n")
+    += i 3;
+    print(i "\n")
+
+# this is a comment here
+    int x = 1
+    / x i 3;
+    print(i "/" 3 " ==> " x "\n")
+    * i x 3;
+    print(x "*" 3 " ==> " i "\n")
+
+    int z = 15
+    int y = 0
+    % y z 3;
+    print(z "%" 3 " ==> " y "\n")
+
+    += z 1;
+    % y z 3;
+    print(z "%" 3 " ==> " y "\n")
+
+    += z 1;
+    % y z 3;
+    print(z "%" 3 " ==> " y "\n")
+
+    += z 1;
+    % y z 3;
+    print(z "%" 3 " ==> " y "\n")
+    return 0
+}

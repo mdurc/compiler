@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include "lexer.h"
 #include "parser.h"
 
 void add_child(struct TokenNode* parent, Token* child) {
@@ -41,18 +42,18 @@ void stack_pop(Stack* s){
 const char *token_type_to_string[] = {
     "OPEN_PAREN", "CLOSE_PAREN", "OPEN_BRACE", "CLOSE_BRACE",
     "OPEN_BRACKET", "CLOSE_BRACKET",
-    "COMMA", "DOT", "MINUS", "PLUS", "SLASH", "STAR",
+    "COMMA", "DOT", "MINUS", "PLUS", "SLASH", "STAR", "SEMICOLON",
+    "PLUS_EQUAL", "MINUS_EQUAL", "MODULO",
 
     "BANG", "BANG_EQUAL", "EQUAL", "EQUAL_EQUAL",
     "GREATER", "GREATER_EQUAL", "LESS", "LESS_EQUAL",
 
     "IDENTIFIER", "STRING_LITERAL", "INT_LITERAL", "STRING_TYPE", "INT_TYPE", "MAIN",
 
-    "AND", "OR", "IF", "ELSE", "TRUE", "FALSE", "FOR", "WHILE", 
+    "AND", "OR", "IF", "ELSEIF", "ELSE", "TRUE", "FALSE", "FOR", "WHILE", 
     "PRINT", "RETURN", "ROOT"
 };
 
-// TODO: verify program ast is within context free language of the program
 void build_ast(Program* prog, AST* ast) {
     if (!prog || prog->token_count == 0) {
         fprintf(stderr, "Error: Program has no tokens.\n");
@@ -68,10 +69,11 @@ void build_ast(Program* prog, AST* ast) {
     Stack parent_stack = {NULL, 0, 0};
     stack_push(&parent_stack, ast->root);
 
-    TokenType parent_keywords[][2] = {{IF, CLOSE_BRACE}, {ELSE, CLOSE_BRACE},
-                                    {WHILE, CLOSE_BRACE}, {FOR, CLOSE_BRACE},
+    TokenType parent_keywords[][2] = {{IF, CLOSE_BRACE}, {WHILE, CLOSE_BRACE}, {FOR, CLOSE_BRACE},
                                     {MAIN, CLOSE_BRACE}, {RETURN, INT_LITERAL},
-                                    {PRINT, CLOSE_PAREN}, {STRING_TYPE, STRING_LITERAL}, {INT_TYPE, INT_LITERAL}};
+                                    {PRINT, CLOSE_PAREN}, {STRING_TYPE, STRING_LITERAL}, {INT_TYPE, INT_LITERAL},
+                                    {PLUS, SEMICOLON}, {MINUS, SEMICOLON}, {SLASH, SEMICOLON}, {STAR, SEMICOLON},
+                                    {PLUS_EQUAL, SEMICOLON}, {MINUS_EQUAL, SEMICOLON}, {MODULO, SEMICOLON}};
 
     TokenType parent_enclosers[][2] = {{OPEN_BRACE, CLOSE_BRACE}, {OPEN_PAREN, CLOSE_PAREN},
                                     {OPEN_BRACKET, CLOSE_BRACKET}};

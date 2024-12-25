@@ -19,6 +19,10 @@ int main(int argc, char** argv){
         exit(EXIT_FAILURE);
     }
     FILE* fp = fopen(argv[1], "r");
+    if (fp == NULL){
+        fprintf(stderr, "Invalid input file: %s\n", argv[1]);
+        exit(EXIT_FAILURE);
+    }
 
     Program prog = {NULL, 0, 0};
     lex_file(fp, &prog.tokens, &prog.token_count, &prog.token_capacity);

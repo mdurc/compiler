@@ -1,0 +1,36 @@
+
+main () {
+    int n = 15
+    int i = 1
+# note that variables must be given a value on declaration
+    int t = 0
+    int k = 0
+
+    while (i <= n){
+        % t i 3;
+        % k i 5;
+
+        if (t == 0){
+            print("Fizz")
+            if(k == 0){
+                print("Buzz")
+            }
+            print("\n")
+        }
+
+        if (t != 0){
+            if(k == 0){
+                print("Buzz\n")
+            }
+        }
+
+        if (t != 0){
+            if (k != 0){
+                print(i "\n")
+            }
+        }
+
+        += i 1;
+    }
+    return 0
+}
