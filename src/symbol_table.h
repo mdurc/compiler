@@ -5,6 +5,7 @@
 
 typedef struct{
     char name[50];
+    char label[50];
     TokenType type;
     char value[50];
 } Symbol;
@@ -17,7 +18,7 @@ typedef struct {
 
 
 void init_symbol_table(SymbolTable* table);
-void add_symbol(SymbolTable* table, const char* name, TokenType type, const char* value);
+void add_symbol(SymbolTable* table, const char* name, const char* label, TokenType type, const char* value);
 Symbol* find_symbol(SymbolTable* table, const char* name);
 void free_symbol_table(SymbolTable* table);
 

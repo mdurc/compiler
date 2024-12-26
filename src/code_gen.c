@@ -150,7 +150,6 @@ void handle_print(struct TokenNode* node, CodeBuffer* buffer, SymbolTable* table
     // exclude the closing parenthesis child at the end
     for(int i=0; i < (open_paren->children_count-1); ++i){
         TokenType t = open_paren->children[i].token_data->type;
-        const char* d = open_paren->children[i].token_data->data;
         if (t == STRING_LITERAL){
             if (strcmp(open_paren->children[i].token_data->data, "\"\\n\"") == 0){
                 // reuse the same newline asciiz label in data section so that
@@ -171,14 +170,15 @@ void handle_print(struct TokenNode* node, CodeBuffer* buffer, SymbolTable* table
             append_to_buffer(buffer, 0, "syscall\n");
         }else if (t == IDENTIFIER){
             // find the string in symbol table, retrieve what the label is from data segment
-            Symbol* sym = find_symbol(table, d);
+            const char* data = open_paren->children[i].token_data->data;
+            Symbol* sym = find_symbol(table, data);
             if (!sym) return;
             if (sym->type == STRING_TYPE){
-                append_to_buffer(buffer, 0, "la $a0, %s\n", d);
+                append_to_buffer(buffer, 0, "la $a0, %s\n", sym->label);
                 append_to_buffer(buffer, 0, "li $v0, 4\n");
                 append_to_buffer(buffer, 0, "syscall\n");
             }else if (sym->type == INT_TYPE){
-                append_to_buffer(buffer, 0, "la $t0, %s\n", d);
+                append_to_buffer(buffer, 0, "la $t0, %s\n", sym->label);
                 append_to_buffer(buffer, 0, "lw $a0, 0($t0)\n");
                 append_to_buffer(buffer, 0, "li $v0, 1\n");
                 append_to_buffer(buffer, 0, "syscall\n");
@@ -212,19 +212,23 @@ void handle_variable_declaration(struct TokenNode* node, CodeBuffer* buffer, Sym
         exit(EXIT_FAILURE);
     }
 
+    // Create a new label for the variable just in case the variable name is an assembly instruction
     const char* var_name = node->children[0].token_data->data;
+    char* var_label = generate_label(buffer);
     const char* value = node->children[2].token_data->data;
 
     if (type == STRING_TYPE) {
-        add_symbol(table, var_name, STRING_TYPE, value);
-        append_to_buffer(buffer, 1, "%s: .asciiz %s\n", var_name, value);
+        add_symbol(table, var_name, var_label, STRING_TYPE, value);
+        append_to_buffer(buffer, 1, "%s: .asciiz %s\n", var_label, value);
     } else if (type == INT_TYPE) {
-        add_symbol(table, var_name, INT_TYPE, value);
-        append_to_buffer(buffer, 1, "%s: .word %s\n", var_name, value);
+        add_symbol(table, var_name, var_label, INT_TYPE, value);
+        append_to_buffer(buffer, 1, "%s: .word %s\n", var_label, value);
     } else {
+        free(var_label);
         fprintf(stderr, "Unknown type at line: %d\n", node->children[0].token_data->line);
         exit(EXIT_FAILURE);
     }
+    free(var_label);
 }
 
 void evaluate_condition(struct TokenNode* node, CodeBuffer* buffer, SymbolTable* table, char* false_label, char* start_body_label) {
@@ -315,11 +319,11 @@ void generate_operand_code(struct TokenNode* node, CodeBuffer* buffer, SymbolTab
             exit(EXIT_FAILURE);
         }
         if (sym->type == INT_TYPE) {
-            append_to_buffer(buffer, 0, "la $t%d, %s\n", is_right ? 2 : 1, node->token_data->data);
+            append_to_buffer(buffer, 0, "la $t%d, %s\n", is_right ? 2 : 1, sym->label);
             append_to_buffer(buffer, 0, "lw $t%d, 0($t%d)\n", is_right ? 1 : 0, is_right ? 2 : 1);
         } else if (sym->type == STRING_TYPE) {
             *string_cmp = 1;
-            append_to_buffer(buffer, 0, "la $a%d, %s\n", is_right ? 1 : 0, node->token_data->data);
+            append_to_buffer(buffer, 0, "la $a%d, %s\n", is_right ? 1 : 0, sym->label);
         } else {
             fprintf(stderr, "Unsupported variable type '%s' in condition.\n", node->token_data->data);
             exit(EXIT_FAILURE);
@@ -454,7 +458,7 @@ void handle_int_operations(struct TokenNode* node, CodeBuffer* buffer, SymbolTab
     }
 
     // load lhs variable
-    append_to_buffer(buffer, 0, "la $t0, %s\n", var->token_data->data);
+    append_to_buffer(buffer, 0, "la $t0, %s\n", sym->label);
     append_to_buffer(buffer, 0, "lw $t1, 0($t0)\n");
 
     // load the operand(s)
@@ -471,7 +475,7 @@ void handle_int_operations(struct TokenNode* node, CodeBuffer* buffer, SymbolTab
             fprintf(stderr, "Operand '%s' on line: %d must be an integer\n", operand_one->token_data->data, node->token_data->line);
             exit(EXIT_FAILURE);
         }
-        append_to_buffer(buffer, 0, "la $t2, %s\n", operand_one->token_data->data);
+        append_to_buffer(buffer, 0, "la $t2, %s\n", operand_one_sym->label);
         append_to_buffer(buffer, 0, "lw $t2, 0($t2)\n");
     }
 
@@ -507,7 +511,7 @@ void handle_int_operations(struct TokenNode* node, CodeBuffer* buffer, SymbolTab
             fprintf(stderr, "Operand '%s' on line: %d must be an integer\n", operand_two->token_data->data, node->token_data->line);
             exit(EXIT_FAILURE);
         }
-        append_to_buffer(buffer, 0, "la $t3, %s\n", operand_two->token_data->data);
+        append_to_buffer(buffer, 0, "la $t3, %s\n", operand_two_sym->label);
         append_to_buffer(buffer, 0, "lw $t3, 0($t3)\n");
     }
 

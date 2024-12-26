@@ -1,5 +1,10 @@
 main(){
+    int b = 328
     print(32 "\nhi there\n" 15 ": is the answer\n")
     print("this is a new print line\n")
+    print(b "\n")
+    + b b 5;
+    += b 5;
+    print(b "\n")
     return 0
 }
