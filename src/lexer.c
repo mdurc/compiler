@@ -2,7 +2,7 @@
 #include "lexer.h"
 
 Keyword keywords[] = {
-    {"if", IF}, {"true", TRUE}, {"false", FALSE},
+    {"and", LOGIC_AND}, {"or", LOGIC_OR}, {"if", IF}, {"true", TRUE}, {"false", FALSE},
     {"for", FOR}, {"while", WHILE}, {"main", MAIN}, {"print", PRINT}, {"return", RETURN},
     {"string", STRING_TYPE}, {"int", INT_TYPE},
 };
@@ -76,8 +76,8 @@ void lex_file(FILE* fp, Token** tokens, int* token_count, int* token_capacity){
             case '/': add_token(tokens, token_count, token_capacity, create_token(SLASH, "/", line)); break;
             case '*': add_token(tokens, token_count, token_capacity, create_token(STAR, "*", line)); break;
             case ';': add_token(tokens, token_count, token_capacity, create_token(SEMICOLON, ";", line)); break;
-            case '&': add_token(tokens, token_count, token_capacity, create_token(AND, "&", line)); break;
-            case '|': add_token(tokens, token_count, token_capacity, create_token(OR, "|", line)); break;
+            case '&': add_token(tokens, token_count, token_capacity, create_token(BIT_AND, "&", line)); break;
+            case '|': add_token(tokens, token_count, token_capacity, create_token(BIT_OR, "|", line)); break;
             case '%': add_token(tokens, token_count, token_capacity, create_token(MODULO, "%", line)); break;
             case '-': 
                 if ((c = getc(fp)) == '=') {

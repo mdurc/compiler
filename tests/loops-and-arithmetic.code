@@ -48,6 +48,11 @@ main () {
     % y z 3;
     print(z "%" 3 " ==> " y "\n")
 
+    int new_val = 23523
+# 23523 % 64 is 35
+    & y new_val 63;
+    print("Using bit-masking &: " z "%" 63 " ==> " y "\n")
+
     += z 1;
     % y z 3;
     print(z "%" 3 " ==> " y "\n")

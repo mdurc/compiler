@@ -1,4 +1,24 @@
 main(){
+
+    int var_one = 15
+    int var_two = 30
+    if (var_one == var_two or false or false and true){
+# this WONT enter because they are all false, and the one true is joined from an "AND"
+        print("Complex One\n")
+    }
+
+    if (var_one == var_two or false or true and true){
+# this WILL enter, because the (true and true) results in true!
+        print("Complex Two\n")
+    }
+
+    if (var_one == var_two or false or var_one != var_two and false){
+# this WONT enter, because the (true and false) results in false.
+        print("Complex Three\n")
+    }
+
+
+
     int x = 32
     if (3 == 3) {
         print("Valid\n")
@@ -52,11 +72,15 @@ main(){
     }
     int m = 1
     int n = 1
-    if (m & n){
+    if (m == 1 and n == 1){
         print("AND working\n")
     }
-    if (m | n){
-        print("OR working\n")
+    if (m == 0 or n == 1){
+        print("OR-1 working\n")
+    }
+
+    if (m == 1 or n == 0){
+        print("OR-2 working\n")
     }
     return 0
 }

@@ -50,7 +50,7 @@ const char *token_type_to_string[] = {
 
     "IDENTIFIER", "STRING_LITERAL", "INT_LITERAL", "STRING_TYPE", "INT_TYPE", "MAIN",
 
-    "AND", "OR", "IF", "ELSEIF", "ELSE", "TRUE", "FALSE", "FOR", "WHILE", 
+    "BIT_AND", "BIT_OR", "LOGIC_AND", "LOGIC_OR", "IF", "ELSEIF", "ELSE", "TRUE", "FALSE", "FOR", "WHILE", 
     "PRINT", "RETURN", "ROOT"
 };
 
@@ -73,7 +73,8 @@ void build_ast(Program* prog, AST* ast) {
                                     {MAIN, CLOSE_BRACE}, {RETURN, INT_LITERAL},
                                     {PRINT, CLOSE_PAREN}, {STRING_TYPE, STRING_LITERAL}, {INT_TYPE, INT_LITERAL},
                                     {PLUS, SEMICOLON}, {MINUS, SEMICOLON}, {SLASH, SEMICOLON}, {STAR, SEMICOLON},
-                                    {PLUS_EQUAL, SEMICOLON}, {MINUS_EQUAL, SEMICOLON}, {MODULO, SEMICOLON}};
+                                    {PLUS_EQUAL, SEMICOLON}, {MINUS_EQUAL, SEMICOLON}, {MODULO, SEMICOLON},
+                                    {BIT_AND, SEMICOLON}, {BIT_OR, SEMICOLON}};
 
     TokenType parent_enclosers[][2] = {{OPEN_BRACE, CLOSE_BRACE}, {OPEN_PAREN, CLOSE_PAREN},
                                     {OPEN_BRACKET, CLOSE_BRACKET}};
@@ -83,8 +84,6 @@ void build_ast(Program* prog, AST* ast) {
 
         Token* curr_token = &prog->tokens[i];
         struct TokenNode* parent_node = parent_stack.buf[parent_stack.size-1];
-        // TODO: remove print
-        //printf("Curr top of stack: %s\n", token_type_to_string[parent_node->token_data->type]);
 
         // TokenNode is 4 bytes, each parent_token is one tokens
         int new_layer = 0;
@@ -110,19 +109,13 @@ void build_ast(Program* prog, AST* ast) {
 
         } else if (new_layer == -1) {
             // close ast layer
-            //printf("POPPING: %s\n", token_type_to_string[parent_node->token_data->type]); // TODO: remove
             add_child(parent_node, curr_token); // add the child that terminates this parent layer
             stack_pop(&parent_stack);
             parent_node = parent_stack.buf[parent_stack.size-1]; // have to update the new top of stack
 
             // Go back to original scope of conditonal
             for (int j=0; j < (int)(sizeof(parent_keywords)/(sizeof(TokenType)*2)); ++j){
-                // TODO: remove prints
-                //printf("STACK TOP (%s) VS KEYWORD (%s), should we pop??: %s vs %s\n", token_type_to_string[parent_node->token_data->type],
-                //        token_type_to_string[parent_keywords[j][0]], token_type_to_string[curr_token->type], token_type_to_string[parent_keywords[j][1]]);
                 if (parent_node->token_data->type == parent_keywords[j][0] && curr_token->type == parent_keywords[j][1]){
-                    // TODO: remove
-                    //printf("POPPING KEYWORD: %s\n", token_type_to_string[parent_node->token_data->type]);
                     stack_pop(&parent_stack);
                     parent_node = parent_stack.buf[parent_stack.size-1]; // have to update the new top of stack
                     break;

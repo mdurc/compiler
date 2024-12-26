@@ -1,13 +1,12 @@
 .data
+newline: .asciiz "\n"
 n: .word 15
 i: .word 1
 t: .word 0
 k: .word 0
-L3: .asciiz "Fizz"
-L5: .asciiz "Buzz"
-L6: .asciiz "\n"
-L9: .asciiz "Buzz\n"
-L12: .asciiz "\n"
+L5: .asciiz "Fizz"
+L8: .asciiz "Buzz"
+L11: .asciiz "Buzz\n"
 
 .text
 .align 2
@@ -19,6 +18,7 @@ addi $sp, $sp, -4
 sw $ra, 0($sp)
 # function content
 
+# == while-conditional start ==
 L0:
 la $t1, i
 lw $t0, 0($t1)
@@ -26,7 +26,7 @@ la $t2, n
 lw $t1, 0($t2)
 sle $v0, $t0, $t1
 beq $v0, $zero, L1
-
+L2:
 la $t0, t
 lw $t1, 0($t0)
 la $t2, i
@@ -43,79 +43,88 @@ li $t3, 5
 div $t2, $t3
 mfhi $t1
 sw $t1, 0($t0)
+# == if-conditional start ==
 la $t1, t
 lw $t0, 0($t1)
 li $t1, 0
 seq $v0, $t0, $t1
-beq $v0, $zero, L2
-
-la $a0, L3
-li $v0, 4
-syscall
-
-la $t1, k
-lw $t0, 0($t1)
-li $t1, 0
-seq $v0, $t0, $t1
-beq $v0, $zero, L4
-
+beq $v0, $zero, L3
+L4:
+# == print start ==
 la $a0, L5
 li $v0, 4
 syscall
-
-L4:
-la $a0, L6
-li $v0, 4
-syscall
-
-L2:
-la $t1, t
-lw $t0, 0($t1)
-li $t1, 0
-sne $v0, $t0, $t1
-beq $v0, $zero, L7
-
+# == print end ==
+# == if-conditional start ==
 la $t1, k
 lw $t0, 0($t1)
 li $t1, 0
 seq $v0, $t0, $t1
-beq $v0, $zero, L8
-
-la $a0, L9
+beq $v0, $zero, L6
+L7:
+# == print start ==
+la $a0, L8
 li $v0, 4
 syscall
-
-L8:
-L7:
+# == print end ==
+# == if-conditional end ==
+L6:
+# == print start ==
+la $a0, newline
+li $v0, 4
+syscall
+# == print end ==
+# == if-conditional end ==
+L3:
+# == if-conditional start ==
 la $t1, t
 lw $t0, 0($t1)
 li $t1, 0
 sne $v0, $t0, $t1
-beq $v0, $zero, L10
-
+beq $v0, $zero, L9
+la $t1, k
+lw $t0, 0($t1)
+li $t1, 0
+seq $v0, $t0, $t1
+beq $v0, $zero, L9
+L10:
+# == print start ==
+la $a0, L11
+li $v0, 4
+syscall
+# == print end ==
+# == if-conditional end ==
+L9:
+# == if-conditional start ==
+la $t1, t
+lw $t0, 0($t1)
+li $t1, 0
+sne $v0, $t0, $t1
+beq $v0, $zero, L12
 la $t1, k
 lw $t0, 0($t1)
 li $t1, 0
 sne $v0, $t0, $t1
-beq $v0, $zero, L11
-
+beq $v0, $zero, L12
+L13:
+# == print start ==
 la $t0, i
 lw $a0, 0($t0)
 li $v0, 1
 syscall
-
-la $a0, L12
+la $a0, newline
 li $v0, 4
 syscall
-
-L11:
-L10:
+# == print end ==
+# == if-conditional end ==
+L12:
 la $t0, i
 lw $t1, 0($t0)
 li $t2, 1
 add $t1, $t1, $t2
 sw $t1, 0($t0)
 j L0
+# == while-conditional loop/end ==
 L1:
 # returning here
 li $v0, 0

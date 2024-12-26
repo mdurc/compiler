@@ -115,6 +115,7 @@ void generate_mips_code(AST* ast, const char* output_filename) {
     append_to_buffer(&buffer, 0, ".align 2\n");
     append_to_buffer(&buffer, 0, ".globl main\n\n");
     append_to_buffer(&buffer, 1, ".data\n");
+    append_to_buffer(&buffer, 1, "newline: .asciiz \"\\n\"\n");
 
     // start generating code from the root
     // Note: as of now we only support having a "main" function
@@ -144,22 +145,30 @@ void handle_print(struct TokenNode* node, CodeBuffer* buffer, SymbolTable* table
         return;
     }
 
+    append_to_buffer(buffer, 0, "# == print start ==\n");
     struct TokenNode* open_paren = &node->children[0];
     // exclude the closing parenthesis child at the end
     for(int i=0; i < (open_paren->children_count-1); ++i){
         TokenType t = open_paren->children[i].token_data->type;
         const char* d = open_paren->children[i].token_data->data;
         if (t == STRING_LITERAL){
-            char* label = generate_label(buffer);
-            append_to_buffer(buffer, 1, "%s: .asciiz %s\n", label, open_paren->children[i].token_data->data);
-            append_to_buffer(buffer, 0, "la $a0, %s\n", label);
+            if (strcmp(open_paren->children[i].token_data->data, "\"\\n\"") == 0){
+                // reuse the same newline asciiz label in data section so that
+                // a ton of newlines aren't created
+                // TODO: might want to remove once/if strings become mutable
+                append_to_buffer(buffer, 0, "la $a0, newline\n");
+            }else{
+                char* label = generate_label(buffer);
+                append_to_buffer(buffer, 1, "%s: .asciiz %s\n", label, open_paren->children[i].token_data->data);
+                append_to_buffer(buffer, 0, "la $a0, %s\n", label);
+                free(label);
+            }
             append_to_buffer(buffer, 0, "li $v0, 4\n");
-            append_to_buffer(buffer, 0, "syscall\n\n");
-            free(label);
+            append_to_buffer(buffer, 0, "syscall\n");
         }else if (t == INT_LITERAL){
             append_to_buffer(buffer, 0, "li $a0, %s\n", open_paren->children[i].token_data->data);
             append_to_buffer(buffer, 0, "li $v0, 1\n");
-            append_to_buffer(buffer, 0, "syscall\n\n");
+            append_to_buffer(buffer, 0, "syscall\n");
         }else if (t == IDENTIFIER){
             // find the string in symbol table, retrieve what the label is from data segment
             Symbol* sym = find_symbol(table, d);
@@ -167,16 +176,16 @@ void handle_print(struct TokenNode* node, CodeBuffer* buffer, SymbolTable* table
             if (sym->type == STRING_TYPE){
                 append_to_buffer(buffer, 0, "la $a0, %s\n", d);
                 append_to_buffer(buffer, 0, "li $v0, 4\n");
-                append_to_buffer(buffer, 0, "syscall\n\n");
+                append_to_buffer(buffer, 0, "syscall\n");
             }else if (sym->type == INT_TYPE){
                 append_to_buffer(buffer, 0, "la $t0, %s\n", d);
                 append_to_buffer(buffer, 0, "lw $a0, 0($t0)\n");
                 append_to_buffer(buffer, 0, "li $v0, 1\n");
-                append_to_buffer(buffer, 0, "syscall\n\n");
+                append_to_buffer(buffer, 0, "syscall\n");
             }
-        }else if (t == INT_TYPE){
         }
     }
+    append_to_buffer(buffer, 0, "# == print end ==\n");
 }
 
 void handle_variable_declaration(struct TokenNode* node, CodeBuffer* buffer, SymbolTable* table, TokenType type) {
@@ -218,165 +227,159 @@ void handle_variable_declaration(struct TokenNode* node, CodeBuffer* buffer, Sym
     }
 }
 
-void evaluate_condition(struct TokenNode* node, CodeBuffer* buffer, SymbolTable* table, char* false_label){
-    if (node->token_data->type != OPEN_PAREN || node->children_count == 1){
-        fprintf(stderr, "No condition found in 'if' statement on line %d\n", node->token_data->line);
-        exit(EXIT_FAILURE);
+void evaluate_condition(struct TokenNode* node, CodeBuffer* buffer, SymbolTable* table, char* false_label, char* start_body_label) {
+    if (node->token_data->type != OPEN_PAREN || node->children_count < 4) {
+        if (!(node->children_count == 2 && (node->children[0].token_data->type == TRUE 
+            || node->children[0].token_data->type == FALSE))){
+            fprintf(stderr, "No condition found in 'if' statement on line %d\n", node->token_data->line);
+            exit(EXIT_FAILURE);
+        }
     }
 
     struct TokenNode* condition = node->children;
     int num_comps = node->children_count;
-    struct TokenNode* comparator = NULL;
-    // exclude the closing parenthesis in children
-    for (int i=0; i<(num_comps-1); ++i){
-        if (condition[i].token_data->type == EQUAL_EQUAL || 
-             condition[i].token_data->type == BANG_EQUAL || 
-             condition[i].token_data->type == GREATER || 
-             condition[i].token_data->type == GREATER_EQUAL || 
-             condition[i].token_data->type == LESS || 
-             condition[i].token_data->type == LESS_EQUAL||
-             condition[i].token_data->type == AND ||
-             condition[i].token_data->type == OR){
-            if (i == 1) { // for now, only support the form: x == y (with any literals & types)
-                comparator = &condition[i];
-            }
-            break; // For now we only support one comparator in conditional
+
+    // handle an isolated true or false in condition
+    if (num_comps == 2 && (condition[0].token_data->type == TRUE || condition[0].token_data->type == FALSE)) {
+        if (condition[0].token_data->type == TRUE) {
+            append_to_buffer(buffer, 0, "# Condition is TRUE, always proceed\n");
+        } else if (condition[0].token_data->type == FALSE) {
+            append_to_buffer(buffer, 0, "# Condition is FALSE, always branch\n");
+            append_to_buffer(buffer, 0, "j %s\n\n", false_label);
         }
+        return;
     }
-    if ((condition->token_data->type != TRUE && condition->token_data->type != FALSE) && 
-        (comparator == NULL || (num_comps-1) != 3)) {
-        fprintf(stderr, "Not a valid condition in statement on line %d\n", node->children[0].token_data->line);
-        fprintf(stderr, "Number of arguments: %d\n", num_comps-1); // exclude CLOSE_PAREN
+    
+    int string_cmp = 0;
+    int i = 0;
+    int last_logic_AND = 1;
+
+    // go through all comparisons in the conditional (...), joined together by 'and's and 'or's
+    // no precedence, just evaluates left to right with short circuit
+    // Though note that OR's require checking every outcome
+    while (i < num_comps - 1) {
+        struct TokenNode* left = &condition[i];
+        struct TokenNode* comparator = NULL;
+        struct TokenNode* right = NULL;
+        if (left->token_data->type == TRUE || left->token_data->type == FALSE){
+            generate_operand_code(left, buffer, table, &string_cmp, 0);
+        }else if (i + 2 < num_comps - 1){
+            comparator = &condition[i + 1];
+            right = &condition[i + 2];
+            generate_operand_code(left, buffer, table, &string_cmp, 0);
+            generate_operand_code(right, buffer, table, &string_cmp, 1);
+            generate_comparator_code(comparator->token_data->type, buffer, string_cmp);
+            printf("Comparing %s and %s, with %s\n", left->token_data->data, right->token_data->data, comparator->token_data->data);
+        }else{
+            fprintf(stderr, "Missing comparator and operand two in condition on line %d\n", node->token_data->line);
+            exit(EXIT_FAILURE);
+        }
+
+        // handle AND, OR, conjunctions
+        // if (x != y and i == k)
+        int increment = comparator == NULL ? 1 : 3;
+        if (i + increment < num_comps - 1) {
+            struct TokenNode* op = &condition[i + increment];
+            if (op->token_data->type == LOGIC_AND) {
+                append_to_buffer(buffer, 0, "beq $v0, $zero, %s\n", false_label);
+                last_logic_AND = 1;
+            } else if (op->token_data->type == LOGIC_OR) {
+                append_to_buffer(buffer, 0, "bne $v0, $zero, %s\n", start_body_label);
+                last_logic_AND = 0;
+            }
+        } else {
+            if (last_logic_AND) {
+                append_to_buffer(buffer, 0, "beq $v0, $zero, %s\n", false_label);
+            }else{
+                append_to_buffer(buffer, 0, "bne $v0, $zero, %s\n", start_body_label);
+            }
+            break;
+        }
+        i += (increment + 1);
+    }
+    // if we ended on or, and it fails, we should jump over the body
+    if (!last_logic_AND){
+        append_to_buffer(buffer, 0, "j %s\n", false_label);
+    }
+}
+
+void generate_operand_code(struct TokenNode* node, CodeBuffer* buffer, SymbolTable* table, int* string_cmp, int is_right) {
+    if (node->token_data->type == TRUE) {
+        append_to_buffer(buffer, 0, "li $v0, 1\n");
+    } else if (node->token_data->type == FALSE) {
+        append_to_buffer(buffer, 0, "li $v0, 0\n");
+    } else if (node->token_data->type == IDENTIFIER) {
+        Symbol* sym = find_symbol(table, node->token_data->data);
+        if (!sym) {
+            fprintf(stderr, "Undefined variable '%s' in condition.\n", node->token_data->data);
+            exit(EXIT_FAILURE);
+        }
+        if (sym->type == INT_TYPE) {
+            append_to_buffer(buffer, 0, "la $t%d, %s\n", is_right ? 2 : 1, node->token_data->data);
+            append_to_buffer(buffer, 0, "lw $t%d, 0($t%d)\n", is_right ? 1 : 0, is_right ? 2 : 1);
+        } else if (sym->type == STRING_TYPE) {
+            *string_cmp = 1;
+            append_to_buffer(buffer, 0, "la $a%d, %s\n", is_right ? 1 : 0, node->token_data->data);
+        } else {
+            fprintf(stderr, "Unsupported variable type '%s' in condition.\n", node->token_data->data);
+            exit(EXIT_FAILURE);
+        }
+    } else if (node->token_data->type == INT_LITERAL) {
+        append_to_buffer(buffer, 0, "li $t%d, %s\n", is_right ? 1 : 0, node->token_data->data);
+    } else if (node->token_data->type == STRING_LITERAL) {
+        *string_cmp = 1;
+        char* label = generate_label(buffer);
+        append_to_buffer(buffer, 1, "%s: .asciiz %s\n", label, node->token_data->data);
+        append_to_buffer(buffer, 0, "la $a%d, %s\n", is_right ? 1 : 0, label);
+        free(label);
+    } else {
+        fprintf(stderr, "Unsupported operand type in condition.\n");
         exit(EXIT_FAILURE);
     }
+}
 
-    int string_cmp = 0;
-
-    // evaluate condition: using $t0 to denote a valid or invalid condition
-    if (condition->token_data->type == TRUE) {
-        // simulate the same values in both registers
-        append_to_buffer(buffer, 0, "li $t0, 1\n");
-        append_to_buffer(buffer, 0, "move $t1, $t0\n");
-    } else if (condition->token_data->type == FALSE) {
-        // simulate different values in both registers
-        append_to_buffer(buffer, 0, "li $t0, 1\n");
-        append_to_buffer(buffer, 0, "move $t1, $zero\n");
-    }else {
-        // multi-token condition
-        struct TokenNode* left = &condition[0]; // left operand
-        struct TokenNode* right = &condition[2]; // right operand
-
-        // evaluate left operand
-        Symbol* sym = find_symbol(table, left->token_data->data);
-        if (left->token_data->type == IDENTIFIER) {
-            if (!sym) {
-                fprintf(stderr, "Undefined variable '%s' in condition.\n", left->token_data->data);
+void generate_comparator_code(TokenType comparator_type, CodeBuffer* buffer, int string_cmp) {
+    if (string_cmp) {
+        append_to_buffer(buffer, 0, "jal strcmp\n");
+    } else {
+        switch (comparator_type) {
+            case EQUAL_EQUAL:
+                append_to_buffer(buffer, 0, "seq $v0, $t0, $t1\n"); // $t0 = ($t0 == $t1)
+                break;
+            case BANG_EQUAL:
+                append_to_buffer(buffer, 0, "sne $v0, $t0, $t1\n"); // $t0 = ($t0 != $t1)
+                break;
+            case GREATER:
+                append_to_buffer(buffer, 0, "sgt $v0, $t0, $t1\n"); // $t0 = ($t0 > $t1)
+                break;
+            case GREATER_EQUAL:
+                append_to_buffer(buffer, 0, "sge $v0, $t0, $t1\n"); // $t0 = ($t0 >= $t1)
+                break;
+            case LESS:
+                append_to_buffer(buffer, 0, "slt $v0, $t0, $t1\n"); // $t0 = ($t0 < $t1)
+                break;
+            case LESS_EQUAL:
+                append_to_buffer(buffer, 0, "sle $v0, $t0, $t1\n"); // $t0 = ($t0 <= $t1)
+                break;
+            default:
+                fprintf(stderr, "Unsupported comparator '%s' in condition.\n", token_type_to_string[comparator_type]);
                 exit(EXIT_FAILURE);
-            }
-            if (sym->type == INT_TYPE) {
-                append_to_buffer(buffer, 0, "la $t1, %s\n", left->token_data->data);
-                append_to_buffer(buffer, 0, "lw $t0, 0($t1)\n"); // load left operand into $t0
-            } else if(sym->type == STRING_TYPE) {
-                string_cmp = 1;
-                append_to_buffer(buffer, 0, "la $a0, %s\n", left->token_data->data);
-            } else {
-                fprintf(stderr, "Invalid type for variable '%s' in condition.\n", left->token_data->data);
-                exit(EXIT_FAILURE);
-            }
-        } else if (left->token_data->type == INT_LITERAL) {
-            append_to_buffer(buffer, 0, "li $t0, %s\n", left->token_data->data);
-        } else if (left->token_data->type == STRING_LITERAL) {
-            string_cmp = 1;
-            char* label = generate_label(buffer);
-            append_to_buffer(buffer, 1, "%s: .asciiz %s\n", label, left->token_data->data);
-            append_to_buffer(buffer, 0, "la $a0, %s\n", label);
-            free(label);
-        } else {
-            fprintf(stderr, "Unsupported left operand in condition.\n");
-            exit(EXIT_FAILURE);
-        }
-
-        // evaluate right operand
-        if (right->token_data->type == IDENTIFIER) {
-            Symbol* sym = find_symbol(table, right->token_data->data);
-            if (!sym) {
-                fprintf(stderr, "Undefined variable '%s' in condition.\n", right->token_data->data);
-                exit(EXIT_FAILURE);
-            }
-            if (sym->type == INT_TYPE) {
-                append_to_buffer(buffer, 0, "la $t2, %s\n", right->token_data->data);
-                append_to_buffer(buffer, 0, "lw $t1, 0($t2)\n");
-            } else if (sym->type == STRING_TYPE) {
-                string_cmp = 1;
-                append_to_buffer(buffer, 0, "la $a1, %s\n", left->token_data->data);
-            } else {
-                fprintf(stderr, "Invalid type for variable '%s' in condition.\n", right->token_data->data);
-                exit(EXIT_FAILURE);
-            }
-        } else if (right->token_data->type == INT_LITERAL) {
-            append_to_buffer(buffer, 0, "li $t1, %s\n", right->token_data->data);
-        } else if (right->token_data->type == STRING_LITERAL) {
-            string_cmp = 1;
-            char* label = generate_label(buffer);
-            append_to_buffer(buffer, 1, "%s: .asciiz %s\n", label, left->token_data->data);
-            append_to_buffer(buffer, 0, "la $a1, %s\n", label);
-            free(label);
-        } else {
-            fprintf(stderr, "Unsupported right operand in condition.\n");
-            exit(EXIT_FAILURE);
-        }
-
-        if (string_cmp) {
-            // note that a0 and a1 should be set to the address of the strings from above ^^
-            append_to_buffer(buffer, 0, "jal strcmp\n");
-        }else{
-            // Generate comparison instructions based on the comparator
-            switch (comparator->token_data->type) {
-                case EQUAL_EQUAL:
-                    append_to_buffer(buffer, 0, "seq $v0, $t0, $t1\n"); // $t0 = ($t0 == $t1)
-                    break;
-                case BANG_EQUAL:
-                    append_to_buffer(buffer, 0, "sne $v0, $t0, $t1\n"); // $t0 = ($t0 != $t1)
-                    break;
-                case GREATER:
-                    append_to_buffer(buffer, 0, "sgt $v0, $t0, $t1\n"); // $t0 = ($t0 > $t1)
-                    break;
-                case GREATER_EQUAL:
-                    append_to_buffer(buffer, 0, "sge $v0, $t0, $t1\n"); // $t0 = ($t0 >= $t1)
-                    break;
-                case LESS:
-                    append_to_buffer(buffer, 0, "slt $v0, $t0, $t1\n"); // $t0 = ($t0 < $t1)
-                    break;
-                case LESS_EQUAL:
-                    append_to_buffer(buffer, 0, "sle $v0, $t0, $t1\n"); // $t0 = ($t0 <= $t1)
-                    break;
-                case AND:
-                    append_to_buffer(buffer, 0, "and $v0, $t0, $t1\n"); // $t0 = ($t0 & $t1)
-                    break;
-                case OR:
-                    append_to_buffer(buffer, 0, "or $v0, $t0, $t1\n"); // $t0 = ($t0 | $t1)
-                    break;
-                default:
-                    fprintf(stderr, "Unsupported comparator in condition.\n");
-                    exit(EXIT_FAILURE);
-            }
         }
     }
-
-    // branch if condition is false
-    append_to_buffer(buffer, 0, "beq $v0, $zero, %s\n\n", false_label);
-    // the caller will generate the body of the condition
-    // and then will append the false label at the end of that
 }
 
 void handle_if_statement(struct TokenNode* node, CodeBuffer* buffer, SymbolTable* table) {
     if (node->children_count < 2 || node->children[0].token_data->type != OPEN_PAREN ||
         node->children[1].token_data->type != OPEN_BRACE || node->children[1].children_count == 1) return;
 
+    append_to_buffer(buffer, 0, "# == if-conditional start ==\n");
+
     // list of condition
     char* false_label = generate_label(buffer);
-    evaluate_condition(&node->children[0], buffer, table, false_label);
+    char* start_body_label = generate_label(buffer);
+    evaluate_condition(&node->children[0], buffer, table, false_label, start_body_label);
 
+    append_to_buffer(buffer, 0, "%s:\n", start_body_label);
     struct TokenNode* body = &node->children[1];
     for (int i=0; i<body->children_count-1; ++i){
         // gen code for the body of the if statement
@@ -384,21 +387,27 @@ void handle_if_statement(struct TokenNode* node, CodeBuffer* buffer, SymbolTable
     }
 
     // label for skipping the body
+    append_to_buffer(buffer, 0, "# == if-conditional end ==\n");
     append_to_buffer(buffer, 0, "%s:\n", false_label);
     free(false_label);
+    free(start_body_label);
 }
 
 void handle_while_loop(struct TokenNode* node, CodeBuffer* buffer, SymbolTable* table){
     if (node->children_count < 2 || node->children[0].token_data->type != OPEN_PAREN ||
         node->children[1].token_data->type != OPEN_BRACE || node->children[1].children_count == 1) return;
 
+    append_to_buffer(buffer, 0, "# == while-conditional start ==\n");
+
     // list of condition
     char* loop_label = generate_label(buffer);
     append_to_buffer(buffer, 0, "%s:\n", loop_label);
 
     char* false_label = generate_label(buffer);
-    evaluate_condition(&node->children[0], buffer, table, false_label);
+    char* start_body_label = generate_label(buffer);
+    evaluate_condition(&node->children[0], buffer, table, false_label, start_body_label);
 
+    append_to_buffer(buffer, 0, "%s:\n", start_body_label);
     struct TokenNode* body = &node->children[1];
     for (int i=0; i<body->children_count-1; ++i){
         // gen code for the body of the if statement
@@ -408,11 +417,13 @@ void handle_while_loop(struct TokenNode* node, CodeBuffer* buffer, SymbolTable* 
     // looping
     append_to_buffer(buffer, 0, "j %s\n", loop_label);
 
+    append_to_buffer(buffer, 0, "# == while-conditional loop/end ==\n");
     // label for skipping the body
     append_to_buffer(buffer, 0, "%s:\n", false_label);
 
     free(loop_label);
     free(false_label);
+    free(start_body_label);
 }
 
 // operations such as plus, plus_equal, etc, are terminated by semicolon
@@ -515,6 +526,12 @@ void handle_int_operations(struct TokenNode* node, CodeBuffer* buffer, SymbolTab
             append_to_buffer(buffer, 0, "div $t2, $t3\n");
             append_to_buffer(buffer, 0, "mfhi $t1\n");
             break;
+        case BIT_AND:
+            append_to_buffer(buffer, 0, "and $t1, $t2, $t3\n");
+            break;
+        case BIT_OR:
+            append_to_buffer(buffer, 0, "or $t1, $t2, $t3\n");
+            break;
         default:
             fprintf(stderr, "Unsupported arithmetic operation '%s' on line: %d\n", node->token_data->data, node->token_data->line);
             exit(EXIT_FAILURE);
@@ -535,7 +552,6 @@ void generate_code(struct TokenNode* node, CodeBuffer* buffer, SymbolTable* tabl
             handle_statement(node, buffer);
             break;
         case PRINT:
-            printf("PRINTING\n");
             handle_print(node, buffer, table);
             break;
         case STRING_TYPE:
@@ -551,6 +567,8 @@ void generate_code(struct TokenNode* node, CodeBuffer* buffer, SymbolTable* tabl
         case MODULO:
         case PLUS_EQUAL:
         case MINUS_EQUAL:
+        case BIT_AND:
+        case BIT_OR:
             handle_int_operations(node, buffer, table);
             break;
         case IF:

@@ -7,7 +7,6 @@ typedef struct{
     char name[50];
     TokenType type;
     char value[50];
-    // int offset; // from $sp, might be useful
 } Symbol;
 
 typedef struct {
