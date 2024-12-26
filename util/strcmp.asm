@@ -21,14 +21,14 @@ beq $t4, $zero, strcmp_equal
 j strcmp_lower
 
 strcmp_equal:
-li $v0, 1
+li $v0, 0
 jr $ra
 
 strcmp_lower:
-li $v0, 0
+li $v0, -1
 jr $ra
 
 strcmp_higher:
-li $v0, 0
+li $v0, 1
 jr $ra
 # ====== END STRCMP ======

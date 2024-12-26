@@ -56,5 +56,24 @@ main () {
     += z 1;
     % y z 3;
     print(z "%" 3 " ==> " y "\n")
+
+    if ("str" == "str"){
+        print("String compare-1 works\n")
+    }
+    if ("st" != "str"){
+        print("String compare-2 works\n")
+    }
+    if ("st" < "str"){
+        print("String compare-3 works\n")
+    }
+    if ("str" <= "str"){
+        print("String compare-4 works\n")
+    }
+    if ("string" > "str"){
+        print("String compare-5 works\n")
+    }
+    if ("str" != "str"){
+        print("WRONG\n")
+    }
     return 0
 }

@@ -345,30 +345,53 @@ void generate_operand_code(struct TokenNode* node, CodeBuffer* buffer, SymbolTab
 void generate_comparator_code(TokenType comparator_type, CodeBuffer* buffer, int string_cmp) {
     if (string_cmp) {
         append_to_buffer(buffer, 0, "jal strcmp\n");
-    } else {
-        switch (comparator_type) {
-            case EQUAL_EQUAL:
+    }
+    switch (comparator_type) {
+        case EQUAL_EQUAL:
+            if (string_cmp){
+                append_to_buffer(buffer, 0, "seq $v0, $v0, $zero\n");
+            }else{
                 append_to_buffer(buffer, 0, "seq $v0, $t0, $t1\n"); // $t0 = ($t0 == $t1)
-                break;
-            case BANG_EQUAL:
+            }
+            break;
+        case BANG_EQUAL:
+            if (string_cmp){
+                append_to_buffer(buffer, 0, "sne $v0, $v0, $zero\n");
+            }else{
                 append_to_buffer(buffer, 0, "sne $v0, $t0, $t1\n"); // $t0 = ($t0 != $t1)
-                break;
-            case GREATER:
+            }
+            break;
+        case GREATER:
+            if (string_cmp){
+                append_to_buffer(buffer, 0, "sgt $v0, $v0, $zero\n");
+            }else{
                 append_to_buffer(buffer, 0, "sgt $v0, $t0, $t1\n"); // $t0 = ($t0 > $t1)
-                break;
-            case GREATER_EQUAL:
+            }
+            break;
+        case GREATER_EQUAL:
+            if (string_cmp){
+                append_to_buffer(buffer, 0, "sge $v0, $v0, $zero\n");
+            }else{
                 append_to_buffer(buffer, 0, "sge $v0, $t0, $t1\n"); // $t0 = ($t0 >= $t1)
-                break;
-            case LESS:
+            }
+            break;
+        case LESS:
+            if (string_cmp){
+                append_to_buffer(buffer, 0, "slt $v0, $v0, $zero\n");
+            }else{
                 append_to_buffer(buffer, 0, "slt $v0, $t0, $t1\n"); // $t0 = ($t0 < $t1)
-                break;
-            case LESS_EQUAL:
+            }
+            break;
+        case LESS_EQUAL:
+            if (string_cmp){
+                append_to_buffer(buffer, 0, "sle $v0, $v0, $zero\n");
+            }else{
                 append_to_buffer(buffer, 0, "sle $v0, $t0, $t1\n"); // $t0 = ($t0 <= $t1)
-                break;
-            default:
-                fprintf(stderr, "Unsupported comparator '%s' in condition.\n", token_type_to_string[comparator_type]);
-                exit(EXIT_FAILURE);
-        }
+            }
+            break;
+        default:
+            fprintf(stderr, "Unsupported comparator '%s' in condition.\n", token_type_to_string[comparator_type]);
+            exit(EXIT_FAILURE);
     }
 }
 
